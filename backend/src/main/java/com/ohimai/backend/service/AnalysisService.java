@@ -15,6 +15,11 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
+<<<<<<< HEAD
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+=======
+>>>>>>> 399dbd0f6060f8863f6901d045dcd799793c3407
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -150,7 +155,11 @@ public class AnalysisService {
                 2. JANGAN gunakan markdown code block (```). Langsung tulis JSON-nya.
                 3. Ekstrak semua informasi yang terlihat dari gambar screenshot berita.
                 4. Lakukan analisis dan verifikasi terhadap klaim utama dalam berita tersebut.
+<<<<<<< HEAD
+                5. JANGAN mengarang atau membuat-buat URL/link artikel. Sebagai gantinya, berikan "searchQuery" berupa kata kunci pencarian yang relevan.
+=======
                 5. Berikan bukti pembanding (searchEvidence) berdasarkan pengetahuanmu.
+>>>>>>> 399dbd0f6060f8863f6901d045dcd799793c3407
 
                 FORMAT JSON YANG WAJIB DIKEMBALIKAN (ikuti struktur ini PERSIS):
                 {
@@ -166,10 +175,16 @@ public class AnalysisService {
                   "finalVerdict": "Salah satu dari: KEMUNGKINAN_SESUAI | KEMUNGKINAN_TIDAK_SESUAI | BUKTI_TIDAK_CUKUP",
                   "searchEvidence": [
                     {
+<<<<<<< HEAD
+                      "title": "Deskripsi topik yang perlu dicari untuk verifikasi (contoh: 'Fakta gempa Turki Februari 2023')",
+                      "searchQuery": "kata kunci pencarian yang relevan dalam bahasa yang sesuai (contoh: gempa turki 2023 korban jiwa)",
+                      "snippet": "Penjelasan singkat mengapa pencarian ini relevan untuk memverifikasi klaim berita tersebut"
+=======
                       "title": "Judul artikel/sumber referensi pembanding",
                       "url": "https://contoh-url-referensi.com/artikel",
                       "domain": "contoh-url-referensi.com",
                       "snippet": "Cuplikan singkat dari sumber referensi yang relevan"
+>>>>>>> 399dbd0f6060f8863f6901d045dcd799793c3407
                     }
                   ]
                 }
@@ -180,8 +195,15 @@ public class AnalysisService {
                 - NOT_MATCHED + HIGH risk = Berita tidak sesuai fakta / berpotensi hoaks
                 - INSUFFICIENT_EVIDENCE + UNKNOWN risk = Tidak cukup data untuk memverifikasi
 
+<<<<<<< HEAD
+                PANDUAN searchEvidence:
+                - Berikan 1-3 kata kunci pencarian yang benar-benar relevan dengan klaim berita.
+                - Jika klaim sangat spesifik dan tidak diketahui, kembalikan searchEvidence sebagai array kosong: [].
+                - JANGAN mengarang judul artikel atau URL. Cukup berikan searchQuery yang bagus.
+=======
                 Berikan minimal 1-3 searchEvidence. Jika kamu tidak memiliki referensi spesifik,
                 berikan saran sumber yang bisa digunakan untuk verifikasi manual.
+>>>>>>> 399dbd0f6060f8863f6901d045dcd799793c3407
 
                 PENTING: Respons-mu HARUS berupa JSON valid. Tidak boleh ada teks tambahan sebelum atau sesudah JSON.
                 """;
@@ -342,11 +364,23 @@ public class AnalysisService {
 
             // Bersihkan markdown code block jika ada (```json ... ```)
             String cleanedJson = cleanJsonResponse(textContent);
+<<<<<<< HEAD
+            logger.debug("Cleaned JSON from Gemini: {}", cleanedJson);
+
+            // Deserialize JSON menjadi AnalysisResponse DTO
+            AnalysisResponse response = objectMapper.readValue(cleanedJson, AnalysisResponse.class);
+
+            // Post-processing: Konversi searchQuery Gemini → URL Google Search yang valid
+            convertSearchEvidenceToGoogleUrls(response);
+
+            return response;
+=======
 
             logger.debug("Cleaned JSON from Gemini: {}", cleanedJson);
 
             // Deserialize JSON menjadi AnalysisResponse DTO
             return objectMapper.readValue(cleanedJson, AnalysisResponse.class);
+>>>>>>> 399dbd0f6060f8863f6901d045dcd799793c3407
 
         } catch (GeminiApiException e) {
             throw e;
@@ -360,6 +394,53 @@ public class AnalysisService {
     }
 
     /**
+<<<<<<< HEAD
+     * Mengonversi setiap searchQuery dari Gemini menjadi URL Google Search yang valid.
+     * Ini menghilangkan masalah hallusinasi URL pada AI.
+     * Jika searchEvidence kosong, dibiarkan kosong (tidak diisi data palsu).
+     */
+    private void convertSearchEvidenceToGoogleUrls(AnalysisResponse response) {
+        if (response.getSearchEvidence() == null || response.getSearchEvidence().isEmpty()) {
+            logger.info("No search evidence provided by Gemini — leaving empty.");
+            return;
+        }
+
+        response.getSearchEvidence().forEach(evidence -> {
+            String query = evidence.getSearchQuery();
+
+            // Jika Gemini tidak isi searchQuery, coba gunakan title sebagai fallback
+            if (query == null || query.isBlank()) {
+                query = evidence.getTitle();
+            }
+
+            if (query != null && !query.isBlank()) {
+                try {
+                    String encoded = URLEncoder.encode(query, StandardCharsets.UTF_8);
+                    evidence.setUrl("https://www.google.com/search?q=" + encoded);
+                    evidence.setDomain("google.com");
+                    logger.debug("Converted searchQuery '{}' to Google Search URL", query);
+                } catch (Exception e) {
+                    logger.warn("Failed to encode search query: {}", query);
+                    // Jika encoding gagal, hapus entry ini agar tidak ada data rusak
+                    evidence.setUrl(null);
+                }
+            } else {
+                // Tidak ada query sama sekali — kosongkan URL
+                evidence.setUrl(null);
+            }
+        });
+
+        // Hapus evidence yang tidak memiliki URL valid
+        response.getSearchEvidence().removeIf(
+            ev -> ev.getUrl() == null || ev.getUrl().isBlank()
+        );
+
+        logger.info("Search evidence converted: {} valid entries", response.getSearchEvidence().size());
+    }
+
+    /**
+=======
+>>>>>>> 399dbd0f6060f8863f6901d045dcd799793c3407
      * Membersihkan respons teks dari Gemini yang mungkin mengandung
      * markdown code block (```json ... ```) atau karakter lain.
      *
