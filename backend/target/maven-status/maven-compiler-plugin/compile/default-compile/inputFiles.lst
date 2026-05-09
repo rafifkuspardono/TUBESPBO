@@ -1,0 +1,10 @@
+/Users/rafif/developments/TUBESPBO/backend/src/main/java/com/ohimai/backend/OhimAiBackendApplication.java
+/Users/rafif/developments/TUBESPBO/backend/src/main/java/com/ohimai/backend/config/CorsConfig.java
+/Users/rafif/developments/TUBESPBO/backend/src/main/java/com/ohimai/backend/controller/AnalysisController.java
+/Users/rafif/developments/TUBESPBO/backend/src/main/java/com/ohimai/backend/dto/AnalysisResponse.java
+/Users/rafif/developments/TUBESPBO/backend/src/main/java/com/ohimai/backend/dto/ErrorResponse.java
+/Users/rafif/developments/TUBESPBO/backend/src/main/java/com/ohimai/backend/dto/SearchEvidence.java
+/Users/rafif/developments/TUBESPBO/backend/src/main/java/com/ohimai/backend/exception/FileValidationException.java
+/Users/rafif/developments/TUBESPBO/backend/src/main/java/com/ohimai/backend/exception/GeminiApiException.java
+/Users/rafif/developments/TUBESPBO/backend/src/main/java/com/ohimai/backend/exception/GlobalExceptionHandler.java
+/Users/rafif/developments/TUBESPBO/backend/src/main/java/com/ohimai/backend/service/AnalysisService.java
