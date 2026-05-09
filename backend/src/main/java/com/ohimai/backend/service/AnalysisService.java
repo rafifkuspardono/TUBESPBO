@@ -238,7 +238,7 @@ public class AnalysisService {
                     ),
                     "generationConfig", Map.of(
                             "temperature", 0.1,
-                            "maxOutputTokens", 2048
+                            "maxOutputTokens", 8192
                     )
             );
 
