@@ -15,11 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
-<<<<<<< HEAD
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-=======
->>>>>>> 399dbd0f6060f8863f6901d045dcd799793c3407
+
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -368,23 +364,10 @@ public class AnalysisService {
 
             // Bersihkan markdown code block jika ada (```json ... ```)
             String cleanedJson = cleanJsonResponse(textContent);
-<<<<<<< HEAD
-            logger.debug("Cleaned JSON from Gemini: {}", cleanedJson);
-
-            // Deserialize JSON menjadi AnalysisResponse DTO
-            AnalysisResponse response = objectMapper.readValue(cleanedJson, AnalysisResponse.class);
-
-            // Post-processing: Konversi searchQuery Gemini → URL Google Search yang valid
-            convertSearchEvidenceToGoogleUrls(response);
-
-            return response;
-=======
-
             logger.debug("Cleaned JSON from Gemini: {}", cleanedJson);
 
             // Deserialize JSON menjadi AnalysisResponse DTO
             return objectMapper.readValue(cleanedJson, AnalysisResponse.class);
->>>>>>> 399dbd0f6060f8863f6901d045dcd799793c3407
 
         } catch (GeminiApiException e) {
             throw e;
@@ -398,53 +381,7 @@ public class AnalysisService {
     }
 
     /**
-<<<<<<< HEAD
-     * Mengonversi setiap searchQuery dari Gemini menjadi URL Google Search yang valid.
-     * Ini menghilangkan masalah hallusinasi URL pada AI.
-     * Jika searchEvidence kosong, dibiarkan kosong (tidak diisi data palsu).
-     */
-    private void convertSearchEvidenceToGoogleUrls(AnalysisResponse response) {
-        if (response.getSearchEvidence() == null || response.getSearchEvidence().isEmpty()) {
-            logger.info("No search evidence provided by Gemini — leaving empty.");
-            return;
-        }
 
-        response.getSearchEvidence().forEach(evidence -> {
-            String query = evidence.getSearchQuery();
-
-            // Jika Gemini tidak isi searchQuery, coba gunakan title sebagai fallback
-            if (query == null || query.isBlank()) {
-                query = evidence.getTitle();
-            }
-
-            if (query != null && !query.isBlank()) {
-                try {
-                    String encoded = URLEncoder.encode(query, StandardCharsets.UTF_8);
-                    evidence.setUrl("https://www.google.com/search?q=" + encoded);
-                    evidence.setDomain("google.com");
-                    logger.debug("Converted searchQuery '{}' to Google Search URL", query);
-                } catch (Exception e) {
-                    logger.warn("Failed to encode search query: {}", query);
-                    // Jika encoding gagal, hapus entry ini agar tidak ada data rusak
-                    evidence.setUrl(null);
-                }
-            } else {
-                // Tidak ada query sama sekali — kosongkan URL
-                evidence.setUrl(null);
-            }
-        });
-
-        // Hapus evidence yang tidak memiliki URL valid
-        response.getSearchEvidence().removeIf(
-            ev -> ev.getUrl() == null || ev.getUrl().isBlank()
-        );
-
-        logger.info("Search evidence converted: {} valid entries", response.getSearchEvidence().size());
-    }
-
-    /**
-=======
->>>>>>> 399dbd0f6060f8863f6901d045dcd799793c3407
      * Membersihkan respons teks dari Gemini yang mungkin mengandung
      * markdown code block (```json ... ```) atau karakter lain.
      *

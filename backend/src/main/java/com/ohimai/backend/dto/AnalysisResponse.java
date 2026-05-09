@@ -166,11 +166,6 @@ public class AnalysisResponse {
     }
 
     public void setSearchEvidence(List<SearchEvidence> searchEvidence) {
-<<<<<<< HEAD
-        // Pastikan list selalu mutable agar bisa dimodifikasi di post-processing
-        this.searchEvidence = searchEvidence != null ? new java.util.ArrayList<>(searchEvidence) : new java.util.ArrayList<>();
-=======
         this.searchEvidence = searchEvidence;
->>>>>>> 399dbd0f6060f8863f6901d045dcd799793c3407
     }
 }
