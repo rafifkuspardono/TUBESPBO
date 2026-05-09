@@ -175,16 +175,10 @@ public class AnalysisService {
                   "finalVerdict": "Salah satu dari: KEMUNGKINAN_SESUAI | KEMUNGKINAN_TIDAK_SESUAI | BUKTI_TIDAK_CUKUP",
                   "searchEvidence": [
                     {
-<<<<<<< HEAD
-                      "title": "Deskripsi topik yang perlu dicari untuk verifikasi (contoh: 'Fakta gempa Turki Februari 2023')",
-                      "searchQuery": "kata kunci pencarian yang relevan dalam bahasa yang sesuai (contoh: gempa turki 2023 korban jiwa)",
-                      "snippet": "Penjelasan singkat mengapa pencarian ini relevan untuk memverifikasi klaim berita tersebut"
-=======
                       "title": "Judul artikel/sumber referensi pembanding",
                       "url": "https://contoh-url-referensi.com/artikel",
                       "domain": "contoh-url-referensi.com",
                       "snippet": "Cuplikan singkat dari sumber referensi yang relevan"
->>>>>>> 399dbd0f6060f8863f6901d045dcd799793c3407
                     }
                   ]
                 }
@@ -195,15 +189,8 @@ public class AnalysisService {
                 - NOT_MATCHED + HIGH risk = Berita tidak sesuai fakta / berpotensi hoaks
                 - INSUFFICIENT_EVIDENCE + UNKNOWN risk = Tidak cukup data untuk memverifikasi
 
-<<<<<<< HEAD
-                PANDUAN searchEvidence:
-                - Berikan 1-3 kata kunci pencarian yang benar-benar relevan dengan klaim berita.
-                - Jika klaim sangat spesifik dan tidak diketahui, kembalikan searchEvidence sebagai array kosong: [].
-                - JANGAN mengarang judul artikel atau URL. Cukup berikan searchQuery yang bagus.
-=======
-                Berikan minimal 1-3 searchEvidence. Jika kamu tidak memiliki referensi spesifik,
-                berikan saran sumber yang bisa digunakan untuk verifikasi manual.
->>>>>>> 399dbd0f6060f8863f6901d045dcd799793c3407
+                Berikan minimal 1-3 searchEvidence yang VALID dan NYATA. Kamu HARUS menggunakan informasi dari pencarian internet (Google Search Tool) yang kamu miliki.
+                JANGAN pernah mengarang atau berhalusinasi membuat URL atau judul berita palsu. Hanya gunakan referensi yang benar-benar kamu temukan dari hasil pencarian internet!
 
                 PENTING: Respons-mu HARUS berupa JSON valid. Tidak boleh ada teks tambahan sebelum atau sesudah JSON.
                 """;
@@ -249,6 +236,9 @@ public class AnalysisService {
                                             "data", base64Image
                                     ))
                             ))
+                    ),
+                    "tools", List.of(
+                            Map.of("googleSearch", Map.of())
                     ),
                     "generationConfig", Map.of(
                             "temperature", 0.1,
@@ -348,17 +338,31 @@ public class AnalysisService {
                 );
             }
 
-            String textContent = candidatesNode.get(0)
-                    .path("content")
-                    .path("parts")
-                    .get(0)
-                    .path("text")
-                    .asText();
+            JsonNode firstCandidate = candidatesNode.get(0);
+            String finishReason = firstCandidate.path("finishReason").asText("");
+            
+            JsonNode partsNode = firstCandidate.path("content").path("parts");
+            
+            if (partsNode.isMissingNode() || !partsNode.isArray() || partsNode.isEmpty() || partsNode.get(0) == null) {
+                logger.error("Raw Gemini Response: {}", rawResponse);
+                if ("SAFETY".equals(finishReason)) {
+                    throw new GeminiApiException(
+                            "SAFETY_VIOLATION",
+                            "Analisis ditolak oleh sistem keamanan (Safety filter). Gambar atau teks mungkin mengandung unsur yang tidak diizinkan."
+                    );
+                }
+                throw new GeminiApiException(
+                        "INVALID_RESPONSE",
+                        "Respons Gemini tidak mengandung teks. Finish reason: '" + finishReason + "'. Raw Response: " + rawResponse
+                );
+            }
+
+            String textContent = partsNode.get(0).path("text").asText();
 
             if (textContent == null || textContent.isBlank()) {
                 throw new GeminiApiException(
                         "EMPTY_CONTENT",
-                        "Gemini tidak mengembalikan konten teks yang valid."
+                        "Gemini mengembalikan teks kosong. Finish reason: '" + finishReason + "'. Raw Response: " + rawResponse
                 );
             }
 
