@@ -12,11 +12,8 @@ public class SearchEvidence {
     @JsonProperty("title")
     private String title;
 
-    @JsonProperty("url")
-    private String url;
-
-    @JsonProperty("domain")
-    private String domain;
+    @JsonProperty("searchQuery")
+    private String searchQuery;
 
     @JsonProperty("snippet")
     private String snippet;
@@ -27,10 +24,9 @@ public class SearchEvidence {
     public SearchEvidence() {
     }
 
-    public SearchEvidence(String title, String url, String domain, String snippet) {
+    public SearchEvidence(String title, String searchQuery, String snippet) {
         this.title = title;
-        this.url = url;
-        this.domain = domain;
+        this.searchQuery = searchQuery;
         this.snippet = snippet;
     }
 
@@ -44,20 +40,29 @@ public class SearchEvidence {
         this.title = title;
     }
 
+    public String getSearchQuery() {
+        return searchQuery;
+    }
+
+    public void setSearchQuery(String searchQuery) {
+        this.searchQuery = searchQuery;
+    }
+
+    @JsonProperty("url")
     public String getUrl() {
-        return url;
+        if (searchQuery != null) {
+            try {
+                return "https://www.google.com/search?q=" + java.net.URLEncoder.encode(searchQuery, "UTF-8");
+            } catch (Exception e) {
+                return "https://www.google.com/search?q=" + searchQuery.replace(" ", "+");
+            }
+        }
+        return null;
     }
 
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
+    @JsonProperty("domain")
     public String getDomain() {
-        return domain;
-    }
-
-    public void setDomain(String domain) {
-        this.domain = domain;
+        return "Google Search";
     }
 
     public String getSnippet() {

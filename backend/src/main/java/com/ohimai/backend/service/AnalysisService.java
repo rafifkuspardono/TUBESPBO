@@ -43,14 +43,12 @@ public class AnalysisService {
 
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
-
-    @Value("${gemini.api.key}")
-    private String geminiApiKey;
+    private final GeminiApiKeyManager apiKeyManager;
 
     @Value("${gemini.api.url}")
     private String geminiApiUrl;
 
-    public AnalysisService(WebClient.Builder webClientBuilder, ObjectMapper objectMapper) {
+    public AnalysisService(WebClient.Builder webClientBuilder, ObjectMapper objectMapper, GeminiApiKeyManager apiKeyManager) {
         // Fix untuk error "Failed to resolve": Memaksa Netty menggunakan system DNS resolver
         reactor.netty.http.client.HttpClient httpClient = reactor.netty.http.client.HttpClient.create()
                 .resolver(io.netty.resolver.DefaultAddressResolverGroup.INSTANCE);
@@ -59,6 +57,7 @@ public class AnalysisService {
                 .clientConnector(new org.springframework.http.client.reactive.ReactorClientHttpConnector(httpClient))
                 .build();
         this.objectMapper = objectMapper;
+        this.apiKeyManager = apiKeyManager;
     }
 
     // =========================================================================
@@ -151,11 +150,7 @@ public class AnalysisService {
                 2. JANGAN gunakan markdown code block (```). Langsung tulis JSON-nya.
                 3. Ekstrak semua informasi yang terlihat dari gambar screenshot berita.
                 4. Lakukan analisis dan verifikasi terhadap klaim utama dalam berita tersebut.
-<<<<<<< HEAD
                 5. JANGAN mengarang atau membuat-buat URL/link artikel. Sebagai gantinya, berikan "searchQuery" berupa kata kunci pencarian yang relevan.
-=======
-                5. Berikan bukti pembanding (searchEvidence) berdasarkan pengetahuanmu.
->>>>>>> 399dbd0f6060f8863f6901d045dcd799793c3407
 
                 FORMAT JSON YANG WAJIB DIKEMBALIKAN (ikuti struktur ini PERSIS):
                 {
@@ -171,9 +166,7 @@ public class AnalysisService {
                   "finalVerdict": "Salah satu dari: KEMUNGKINAN_SESUAI | KEMUNGKINAN_TIDAK_SESUAI | BUKTI_TIDAK_CUKUP",
                   "searchEvidence": [
                     {
-                      "title": "Judul artikel/sumber referensi pembanding",
-                      "url": "https://contoh-url-referensi.com/artikel",
-                      "domain": "contoh-url-referensi.com",
+                      "searchQuery": "kata kunci pencarian",
                       "snippet": "Cuplikan singkat dari sumber referensi yang relevan"
                     }
                   ]
@@ -242,16 +235,16 @@ public class AnalysisService {
                     )
             );
 
-            String fullUrl = geminiApiUrl + "?key=" + geminiApiKey;
             logger.info("Calling Gemini API: {}", geminiApiUrl);
 
-            // Retry otomatis hingga 3 kali jika terkena rate limit (429)
-            int maxRetries = 3;
-            int delaySeconds = 2;
+            // Coba sebanyak jumlah API key yang tersedia
+            int maxRetries = apiKeyManager.getTotalKeys();
 
             for (int attempt = 1; attempt <= maxRetries; attempt++) {
                 try {
-                    logger.info("Attempt {}/{} calling Gemini API...", attempt, maxRetries);
+                    String currentKey = apiKeyManager.getCurrentKey();
+                    String fullUrl = geminiApiUrl + "?key=" + currentKey;
+                    logger.info("Attempt {}/{} calling Gemini API dengan Key...", attempt, maxRetries);
 
                     String response = webClient.post()
                             .uri(fullUrl)
@@ -259,10 +252,10 @@ public class AnalysisService {
                             .bodyValue(requestBody)
                             .retrieve()
                             .onStatus(
-                                status -> status.value() == 429,
+                                status -> status.value() == 429 || status.value() == 503,
                                 clientResponse -> clientResponse.bodyToMono(String.class)
                                     .flatMap(body -> reactor.core.publisher.Mono.error(
-                                        new GeminiApiException("RATE_LIMIT", "429 Too Many Requests: " + body)
+                                        new GeminiApiException("RATE_LIMIT", "HTTP " + clientResponse.statusCode() + ": " + body)
                                     ))
                             )
                             .onStatus(
@@ -280,9 +273,10 @@ public class AnalysisService {
 
                 } catch (GeminiApiException e) {
                     if (e.getErrorCode().equals("RATE_LIMIT") && attempt < maxRetries) {
-                        logger.warn("Rate limit hit on attempt {}. Waiting {}s before retry...", attempt, delaySeconds);
-                        Thread.sleep(delaySeconds * 1000L);
-                        delaySeconds *= 2; // Exponential backoff: 2s, 4s, 8s
+                        logger.warn("Rate limit hit pada percobaan ke-{}. Merotasi API Key...", attempt);
+                        apiKeyManager.rotateKey();
+                        // Tunggu sebentar (1 detik) sebelum retry dengan key baru
+                        Thread.sleep(1000L);
                     } else {
                         throw e; // Lempar jika bukan 429 atau sudah habis retry
                     }
