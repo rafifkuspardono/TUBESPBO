@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
   AlertCircle,
-  Loader2, Scan, BarChart2, ArrowRight,
+  Loader2, Scan, BarChart2, ArrowRight, ArrowLeft,
   FileImage, CloudUpload, ChevronRight, FileText,
   ScanSearch, BarChart, Home
 } from 'lucide-react';
 
-const BACKEND_URL = 'http://localhost:8080';
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 // =============================================
 // TYPE DEFINITIONS
@@ -414,9 +414,17 @@ const CekBerita = ({ onAnalysisComplete, navigate }: { onAnalysisComplete: (data
     <div className="min-h-screen bg-[#000000] text-[#FFFFFF] flex flex-col font-sans">
       <div className="w-full max-w-3xl mx-auto px-8 py-14">
         {/* Title */}
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold mb-2">OHIM AI</h1>
-          <p className="text-[#7E818C]">Verifikasi screenshot berita berbasis AI</p>
+        <div className="mb-10 flex flex-col gap-4">
+          <button
+            onClick={() => navigate('beranda')}
+            className="flex items-center gap-2 text-sm text-[#7E818C] hover:text-[#FFFFFF] transition-colors w-fit"
+          >
+            <ArrowLeft size={16} /> Kembali ke Beranda
+          </button>
+          <div>
+            <h1 className="text-4xl font-bold mb-2">OHIM AI</h1>
+            <p className="text-[#7E818C]">Verifikasi screenshot berita berbasis AI</p>
+          </div>
         </div>
 
         {/* Card */}
@@ -509,7 +517,7 @@ const ELA_THEME: Record<string, { bg: string; border: string; text: string; labe
 const getElaTheme = (status: string) =>
   ELA_THEME[status?.toUpperCase()] ?? ELA_THEME['SUSPICIOUS'];
 
-const HasilAnalisis = ({ result }: { result: AnalysisResponse | null }) => {
+const HasilAnalisis = ({ result, navigate }: { result: AnalysisResponse | null; navigate: (page: string) => void }) => {
   if (!result) {
     return (
       <div className="min-h-screen bg-[#000000] text-[#FFFFFF] flex items-center justify-center">
@@ -524,9 +532,17 @@ const HasilAnalisis = ({ result }: { result: AnalysisResponse | null }) => {
   return (
     <div className="min-h-screen bg-[#000000] text-[#FFFFFF] font-sans">
       <div className="w-full max-w-3xl mx-auto px-8 py-14">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-1">Hasil Analisis</h1>
-          <p className="text-[#7E818C] text-sm">OHIM AI · Verifikasi screenshot berita</p>
+        <div className="mb-8 flex flex-col gap-4">
+          <button
+            onClick={() => navigate('cek_berita')}
+            className="flex items-center gap-2 text-sm text-[#7E818C] hover:text-[#FFFFFF] transition-colors w-fit"
+          >
+            <ArrowLeft size={16} /> Kembali ke Cek Berita
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold mb-1">Hasil Analisis</h1>
+            <p className="text-[#7E818C] text-sm">OHIM AI · Verifikasi screenshot berita</p>
+          </div>
         </div>
 
         {/* ── Verdict banner (warna dari riskLevel) ── */}
@@ -758,10 +774,27 @@ const SlidingNavbar = ({
 // =============================================
 
 function App() {
-  const [activeMenu, setActiveMenu] = useState('beranda');
+  const [activeMenu, setActiveMenu] = useState(() => {
+    const hash = window.location.hash.replace('#', '');
+    return hash || 'beranda';
+  });
   const [hasAnalysis, setHasAnalysis] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      setActiveMenu(hash || 'beranda');
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const navigate = (page: string) => {
+    window.location.hash = page;
+  };
 
   const isOnBeranda = activeMenu === 'beranda';
 
@@ -770,21 +803,23 @@ function App() {
       {!isOnBeranda && (
         <SlidingNavbar
           activeMenu={activeMenu}
-          navigate={setActiveMenu}
+          navigate={navigate}
           hasAnalysis={hasAnalysis}
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
         />
       )}
 
-      {activeMenu === 'beranda' && <Beranda navigate={setActiveMenu} />}
+      {activeMenu === 'beranda' && <Beranda navigate={navigate} />}
       {activeMenu === 'cek_berita' && (
         <CekBerita
           onAnalysisComplete={(data) => { setHasAnalysis(true); setAnalysisResult(data); }}
-          navigate={setActiveMenu}
+          navigate={navigate}
         />
       )}
-      {activeMenu === 'hasil_analisis' && <HasilAnalisis result={analysisResult} />}
+      {activeMenu === 'hasil_analisis' && (
+        <HasilAnalisis result={analysisResult} navigate={navigate} />
+      )}
     </>
   );
 }
